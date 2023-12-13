@@ -5,8 +5,8 @@
 
 ### **Steps**
 >- [x] Create the Bot
->- [ ] nnbnb
->- [ ] nnbnb
+>- [ ] Soon
+>- [ ] Soon
 
 
 ### **Developers**
