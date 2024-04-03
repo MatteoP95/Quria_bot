@@ -21,4 +21,35 @@ async def hello(ctx):
     await ctx.send("Hello, i am Quria!")
 
 
+# LISTE DEL MODAL
+attivita = ["PVE", "PVP"]
+PVP = ["Prove di Osiride", "Stendardo di Ferro", "Crogiolo", "Privata"]
+PVE = [
+    "Raid",
+    "Dungeon",
+    "Cala la Notte",
+    "Quest Esotica",
+    "Attività Stagionale",
+]
+Raid = [
+    "Volta di Vetro",
+    "La Fine di Crota",
+    "La Caduta di un Re",
+    "Ultimo Desiderio",
+    "Giardino della Salvezza",
+    "Cripta di Pietrafonda",
+    "Promessa del Discepolo",
+    "Radice degli Incubi",
+]
+Dungeon = [
+    "Trono Infranto",
+    "Fossa dell'Eresia",
+    "Profezia",
+    "Morsa della Cupidigia",
+    "Dualità",
+    "Pinnacolo dell'Osservatrice",
+    "Spettri del Profondo",
+    "Rovina della Signora della Guerra",
+]
+
 client.run(TOKEN)
