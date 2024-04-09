@@ -27,7 +27,7 @@ num_partecipanti = 0
 # BOTTONE
 class Button(discord.ui.View):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=None)
 
     @discord.ui.button(label="Attività", style=discord.ButtonStyle.red)
     async def inviteBtn(
@@ -81,16 +81,18 @@ class PVE(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        global max_players  # Aggiungi questa linea per dichiarare max_players come variabile globale
-
         selezione[interaction.user.id]["Attività"] = self.values[0]
         if self.values[0] == "Raid":
-            max_players = 6  # Imposta il valore di max_players per i Raid
+            selezione[interaction.user.id][
+                "max_players"
+            ] = 6  # Imposta il valore di max_players per i Raid
             await interaction.response.send_message(view=Nome1View(), ephemeral=True)
         elif self.values[0] == "Dungeon":
             await interaction.response.send_message(view=Nome2View(), ephemeral=True)
         else:
-            max_players = 3  # Imposta il valore di max_players per le altre attività
+            selezione[interaction.user.id][
+                "max_players"
+            ] = 3  # Imposta il valore di max_players per le altre attività
             await interaction.response.send_message(view=GiornoView(), ephemeral=True)
 
 
@@ -172,18 +174,20 @@ class PVP(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        global max_players  # Aggiungi questa linea per dichiarare max_players come variabile globale
-
         selezione[interaction.user.id]["Modalità"] = self.values[0]
         if self.values[0] == "Prove di Osiride" or self.values[0] == "Competitiva":
-            max_players = 3  # Imposta il valore di max_players per le Prove di Osiride
+            selezione[interaction.user.id][
+                "max_players"
+            ] = 3  # Imposta il valore di max_players per le Prove di Osiride
         elif self.values[0] == "Stendardo di Ferro" or self.values[0] == "Crogiolo":
-            max_players = (
-                6  # Imposta il valore di max_players per Stendardo di Ferro e Crogiolo
-            )
+            selezione[interaction.user.id][
+                "max_players"
+            ] = 6  # Imposta il valore di max_players per Stendardo di Ferro e Crogiolo
         elif self.values[0] == "Privata":
-            max_players = 12  # Imposta il valore di max_players per Privata
-        await interaction.response.send_message(view=GiornoView(), ephemeral=True)
+            selezione[interaction.user.id][
+                "max_players"
+            ] = 12  # Imposta il valore di max_players per Privata
+            await interaction.response.send_message(view=GiornoView(), ephemeral=True)
 
 
 class PVPView(discord.ui.View):
@@ -261,6 +265,7 @@ class Ora(discord.ui.Select):
         # Ottieni l'ora e il giorno attuali
         ora_attuale = datetime.now().hour
         giorno_attuale = datetime.now().strftime("%A")
+        minuti_attuali = datetime.now().minute
 
         # Mappa i nomi dei giorni in inglese ai corrispondenti nomi in italiano
         giorni_italiano = {
@@ -278,10 +283,16 @@ class Ora(discord.ui.Select):
 
         # Se l'utente ha selezionato 'Oggi', allora rendi selezionabili solo le ore future
         if giorno_selezionato == giorno_attuale_italiano:
-            options = [
-                discord.SelectOption(label=str(i).zfill(2))
-                for i in range(ora_attuale, 25)
-            ]
+            if minuti_attuali > 45:
+                options = [
+                    discord.SelectOption(label=str(i).zfill(2))
+                    for i in range(ora_attuale + 1, 25)
+                ]
+            else:
+                options = [
+                    discord.SelectOption(label=str(i).zfill(2))
+                    for i in range(ora_attuale, 25)
+                ]
         else:
             options = [
                 discord.SelectOption(label=str(i).zfill(2)) for i in range(8, 25)
@@ -417,6 +428,8 @@ class MyButton(discord.ui.Button):
             partecipanti_evento[evento_id] = []
             riserve_evento[evento_id] = []
 
+        max_players = selezione[interaction.user.id]["max_players"]
+
         if self.custom_id == "button1":  # Se l'utente ha cliccato il pulsante verde
             # Aggiungi l'utente alla lista dei partecipanti solo se non è già presente
             user_name = f"{interaction.user.name}"
@@ -461,7 +474,7 @@ class MyButton(discord.ui.Button):
 
 class ButtonView(discord.ui.View):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=None)
         self.add_item(MyButton("+", "button1", discord.ButtonStyle.green))
         self.add_item(MyButton("-", "button2", discord.ButtonStyle.red))
         self.add_item(MyButton("EDIT", "button3", discord.ButtonStyle.gray))
@@ -496,7 +509,7 @@ async def send_summary(interaction: discord.Interaction):
 
     if user_selection.get("Tipo") == "PVP":
         embed.add_field(
-            name="Modalità", value=user_selection.get("Modalità", ""), inline=True
+            name="Modalità", value=user_selection.get("Modalità", ""), inline=False
         )
 
     # Mappa i nomi dei giorni e dei mesi in inglese ai corrispondenti nomi in italiano
@@ -563,8 +576,6 @@ async def send_summary(interaction: discord.Interaction):
         tempo_rimanente_formattato = "60 Minuti"
     elif minuti_rimanenti >= 10:
         tempo_rimanente_formattato = f"{int(minuti_rimanenti)} Minuti"
-    elif minuti_rimanenti > 0:
-        tempo_rimanente_formattato = f"{int(minuti_rimanenti)} Minuti"
     else:
         tempo_rimanente_formattato = "Iniziato"
 
@@ -574,6 +585,8 @@ async def send_summary(interaction: discord.Interaction):
         value=f"`{tempo_rimanente_formattato}`",
         inline=True,
     )
+
+    max_players = user_selection.get("max_players", 3)
 
     embed.add_field(
         name=f"Partecipanti: {num_partecipanti} / {max_players}",
@@ -596,6 +609,63 @@ async def send_summary(interaction: discord.Interaction):
 
     # Avvia il task per inviare le notifiche
     asyncio.create_task(invia_notifiche(data_evento, message))
+
+    # Aggiungi questa linea per avviare il task per aggiornare l'embed
+    asyncio.create_task(aggiorna_embed(message, data_evento))
+
+
+async def aggiorna_embed(message, data_evento):
+    while True:  # Loop infinito
+        # Calcola il tempo rimanente
+        tempo_rimanente = (data_evento - datetime.now()).total_seconds()
+
+        # Calcola il tempo rimanente in giorni, ore e minuti
+        giorni_rimanenti = tempo_rimanente // (24 * 3600)
+        ore_rimanenti = (tempo_rimanente % (24 * 3600)) // 3600
+        minuti_rimanenti = (tempo_rimanente % 3600) // 60
+
+        # Formatta il tempo rimanente
+        if giorni_rimanenti == 1:
+            tempo_rimanente_formattato = f"{int(giorni_rimanenti)} Giorno"
+        elif giorni_rimanenti > 1:
+            tempo_rimanente_formattato = f"{int(giorni_rimanenti)} Giorni"
+        elif ore_rimanenti == 1:
+            tempo_rimanente_formattato = f"{int(ore_rimanenti)} Ora"
+        elif ore_rimanenti > 1:
+            tempo_rimanente_formattato = f"{int(ore_rimanenti)} Ore"
+        elif minuti_rimanenti == 1:
+            tempo_rimanente_formattato = f"{int(minuti_rimanenti)} Minuto"
+        elif minuti_rimanenti > 0:
+            tempo_rimanente_formattato = f"{int(minuti_rimanenti+1)} Minuti"
+        elif minuti_rimanenti == 0:
+            tempo_rimanente_formattato = "Iniziato"
+
+        # Ottieni l'embed dal messaggio
+        embed = message.embeds[0]
+
+        # Trova l'indice del campo "Inizia tra:"
+        for i, field in enumerate(embed.fields):
+            if field.name == "Inizia tra:":
+                break
+        else:
+            print("Campo 'Inizia tra:' non trovato")
+            return
+
+        # Aggiorna il campo "Inizia tra:"
+        embed.set_field_at(
+            i, name="Inizia tra:", value=f"`{tempo_rimanente_formattato}`", inline=True
+        )
+
+        # Modifica il messaggio per aggiornare l'embed
+        await message.edit(embed=embed)
+
+        # Aspetta un po' prima del prossimo aggiornamento
+        if giorni_rimanenti >= 1:
+            await asyncio.sleep(3600)  # Aggiorna ogni ora
+        elif ore_rimanenti >= 1:
+            await asyncio.sleep(600)  # Aggiorna ogni 10 minuti
+        else:
+            await asyncio.sleep(60)  # Aggiorna ogni minuto
 
 
 async def invia_notifiche(data_evento, message):
